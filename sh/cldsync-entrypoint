@@ -1,0 +1,57 @@
+#! /usr/bin/env sh
+
+URL=$CLOUD_SYNC_URL
+USERNAME=$CLOUD_SYNC_USERNAME
+PASSWORD=$CLOUD_SYNC_PASSWORD
+DIRMODE=${CLOUD_SYNC_DIRMODE:-755}
+FILEMODE=${CLOUD_SYNC_FILEMODE:-755}
+unset CLOUD_SYNC_PASSWORD                                              
+
+if [ -z "$URL" ]; then
+    echo "Nothing found in CLOUD_SYNC_URL to mount, giving up!" 
+    exit 1
+fi
+
+MOUNT=/cldsync/drive
+MOUNTPIDF=/var/run/mount.davfs/cldsync-drive.pid
+
+if [ ! -d $MOUNT ]; then
+    mkdir -p $MOUNT
+fi
+
+if [ ! -f /cldsync/config/secrets ]; then
+    cp -rf /etc/davfs2-dist/* /cldsync/config/
+fi
+cp -rf /cldsync/config /etc/davfs2
+
+if [ ! -z "$USERNAME" ]; then
+    echo "$MOUNT $USERNAME $PASSWORD" > /etc/davfs2/secrets
+fi
+unset PASSWORD                                              
+
+if [ -n "$(env | grep "DAVFS2_")" ]; then
+    echo "[$MOUNT]" > /etc/davfs2/davfs2.conf
+    for VAR in $(env); do
+        if [ -n "$(echo "$VAR" | grep -E '^DAVFS2_')" ]; then
+            OPT_NAME=$(echo "$VAR" | sed -r "s/DAVFS2_([^=]*)=.*/\1/g" | tr '[:upper:]' '[:lower:]')
+            VAR_FULL_NAME=$(echo "$VAR" | sed -r "s/([^=]*)=.*/\1/g")
+            VAL=$(eval echo \$$VAR_FULL_NAME)
+            echo "$OPT_NAME $VAL" >> /etc/davfs2/davfs2.conf
+        fi
+    done
+fi
+
+if [ -f $MOUNTPIDF ] && [ -z $(ps aux | grep "[m]ount.davfs") ]; then
+    echo "Clear before pid file"
+    rm -f $MOUNTPIDF
+fi
+
+mount -t davfs $URL $MOUNT -o uid=0,gid=0,dir_mode=$DIRMODE,file_mode=$FILEMODE
+
+if [ $? -eq 0 ] && [ -n "$(ls -1A $MOUNT)" ]; then
+    echo "Mounted $URL onto $MOUNT"
+    exec "$@"
+else
+    echo "Nothing found in $MOUNT, giving up!"
+    exit 2
+fi
