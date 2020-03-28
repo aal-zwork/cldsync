@@ -22,6 +22,7 @@ fi
 if [ ! -f /cldsync/config/secrets ]; then
     cp -rf /etc/davfs2-dist/* /cldsync/config/
 fi
+rm -rf /etc/davfs2
 cp -rf /cldsync/config /etc/davfs2
 
 if [ ! -z "$USERNAME" ]; then
