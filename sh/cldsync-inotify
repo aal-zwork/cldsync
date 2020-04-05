@@ -8,11 +8,11 @@ FILEMODE=${CLOUD_SYNC_FILEMODE:-755}
 SRC=/cldsync/src/
 MOUNT=/cldsync/drive
 DST=$MOUNT$SUBPATH
+logd=/cldsync/log
 
 . cldsync-trap
 
 echo "inotify $SRC onto $DST"
-logd=/cldsync/log
 # --remove-source-files
 # > $logd/rsync.log
 #-q -o $logd/inotify.log
@@ -20,15 +20,15 @@ mkdir -p "$SRC"
 mkdir -p "$DST"
 mkdir -p "$logd"
 rsync -auv -T /tmp --size-only --chmod=755 $SRC $DST
-find $SRC -mtime +0 -exec rm {} \; &> /dev/null
-find $SRC -type d -exec rmdir {} \; &> /dev/null
 while true; do
   if [ -z "$INOTIFY_EXCLUDE" ]; then 
     inotifywait -r -t $TIMESYNC -e close_write,move,delete $SRC
   else
     inotifywait -r -t $TIMESYNC -e close_write,move,delete --exclude $INOTIFY_EXCLUDE $SRC
   fi
+  if [ ! -n "$(ls -1A $MOUNT)" ]; then
+    echo "Nothing found in $MOUNT, giving up!"
+    exit 2
+  fi
   rsync -auv -T /tmp --size-only --chmod=$FILEMODE $SRC $DST
-  find $SRC -mtime +0 -exec rm {} \; &> /dev/null
-  find $SRC -type d -exec rmdir {} \; &> /dev/null
 done
