@@ -2,4 +2,10 @@
 
 . cldsync-trap
 
-tail -f /dev/null
+while true; do
+    if [ -z "$(ps aux | grep "[m]ount.davfs")" ] || [ -z "$(ls -1A "$CLD_MOUNT")" ]; then
+        exit 
+    fi
+    ls "$CLD_MOUNT"
+    sleep $CLD_LOOP_PERIOD
+done

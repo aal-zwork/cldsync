@@ -1,34 +1,22 @@
 #! /usr/bin/env sh
 
-SUBPATH=${CLOUD_SYNC_SUBPATH:-/}
-INOTIFY_EXCLUDE=$CLOUD_SYNC_INOTIFY_EXCLUDE
-TIMESYNC=${CLOUD_SYNC_FORCE_TIMESYNC:-300}
-FILEMODE=${CLOUD_SYNC_FILEMODE:-755}
-
-SRC=/cldsync/src/
-MOUNT=/cldsync/drive
-DST=$MOUNT$SUBPATH
-logd=/cldsync/log
+CLD_DST=$CLD_MOUNT$CLD_SUBPATH
 
 . cldsync-trap
 
-echo "inotify $SRC onto $DST"
-# --remove-source-files
-# > $logd/rsync.log
-#-q -o $logd/inotify.log
-mkdir -p "$SRC"
-mkdir -p "$DST"
-mkdir -p "$logd"
-rsync -auv -T /tmp --size-only --chmod=755 $SRC $DST
+echo "inotify $CLD_SRC onto $CLD_DST"
+mkdir -p "$CLD_SRC"
+mkdir -p "$CLD_DST"
+rsync -auv -T /tmp --size-only --chmod=755 $CLD_SRC $CLD_DST
 while true; do
-  if [ -z "$INOTIFY_EXCLUDE" ]; then 
-    inotifywait -r -t $TIMESYNC -e close_write,move,delete $SRC
+  if [ -z "$CLD_INOTIFY_EXCLUDE" ]; then 
+    inotifywait -r -t $CLD_TIMESYNC -e close_write,move,delete $CLD_SRC
   else
-    inotifywait -r -t $TIMESYNC -e close_write,move,delete --exclude $INOTIFY_EXCLUDE $SRC
+    inotifywait -r -t $CLD_TIMESYNC -e close_write,move,delete --exclude $CLD_INOTIFY_EXCLUDE $CLD_SRC
   fi
-  if [ ! -n "$(ls -1A $MOUNT)" ]; then
-    echo "Nothing found in $MOUNT, giving up!"
+  if [ ! -n "$(ls -1A $CLD_MOUNT)" ]; then
+    echo "Nothing found in $CLD_MOUNT, giving up!"
     exit 2
   fi
-  rsync -auv -T /tmp --size-only --chmod=$FILEMODE $SRC $DST
+  rsync -auv -T /tmp --size-only --chmod=$CLD_FILEMODE $CLD_SRC $CLD_DST
 done

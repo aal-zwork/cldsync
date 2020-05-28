@@ -1,37 +1,32 @@
 #! /usr/bin/env sh
 
-URL=$CLOUD_SYNC_URL
-USERNAME=$CLOUD_SYNC_USERNAME
-PASSWORD=$CLOUD_SYNC_PASSWORD
-DIRMODE=${CLOUD_SYNC_DIRMODE:-755}
-FILEMODE=${CLOUD_SYNC_FILEMODE:-755}
-unset CLOUD_SYNC_PASSWORD                                              
+#echo $CLD_URL
+#echo $CLD_USERNAME
+#echo $CLD_PASSWORD
 
-if [ -z "$URL" ]; then
-    echo "Nothing found in CLOUD_SYNC_URL to mount, giving up!" 
+#echo $CLD_MOUNT
+#echo $CLD_UID
+#echo $CLD_GID
+#echo $CLD_DIRMODE
+#echo $CLD_FILEMODE
+MOUNTPIDF=/var/run/mount.davfs/mnt-webdrive.pid
+
+if [ -z "$CLD_URL" ]; then
+    echo "Nothing found in CLD_URL to mount, giving up!" 
     exit 1
 fi
 
-MOUNT=/cldsync/drive
-MOUNTPIDF=/var/run/mount.davfs/cldsync-drive.pid
-
-if [ ! -d $MOUNT ]; then
-    mkdir -p $MOUNT
+if [ ! -d $CLD_MOUNT ]; then
+    mkdir -p $CLD_MOUNT
 fi
 
-if [ ! -f /cldsync/config/secrets ]; then
-    cp -rf /etc/davfs2-dist/* /cldsync/config/
+if [ ! -z "$CLD_USERNAME" ]; then
+    echo "$CLD_MOUNT $CLD_USERNAME $CLD_PASSWORD" > /etc/davfs2/secrets
 fi
-rm -rf /etc/davfs2
-cp -rf /cldsync/config /etc/davfs2
-
-if [ ! -z "$USERNAME" ]; then
-    echo "$MOUNT $USERNAME $PASSWORD" > /etc/davfs2/secrets
-fi
-unset PASSWORD                                              
+unset CLD_PASSWORD                                              
 
 if [ -n "$(env | grep "DAVFS2_")" ]; then
-    echo "[$MOUNT]" > /etc/davfs2/davfs2.conf
+    echo "[$CLD_MOUNT]" > /etc/davfs2/davfs2.conf
     for VAR in $(env); do
         if [ -n "$(echo "$VAR" | grep -E '^DAVFS2_')" ]; then
             OPT_NAME=$(echo "$VAR" | sed -r "s/DAVFS2_([^=]*)=.*/\1/g" | tr '[:upper:]' '[:lower:]')
@@ -42,17 +37,18 @@ if [ -n "$(env | grep "DAVFS2_")" ]; then
     done
 fi
 
-if [ -f $MOUNTPIDF ] && [ -z $(ps aux | grep "[m]ount.davfs") ]; then
-    echo "Clear before pid file"
+if [ -f $MOUNTPIDF ]; then
+    echo "Clear before pid file $MOUNTPIDF"
     rm -f $MOUNTPIDF
 fi
 
-mount -t davfs $URL $MOUNT -o uid=0,gid=0,dir_mode=$DIRMODE,file_mode=$FILEMODE
+mount -t davfs $CLD_URL $CLD_MOUNT \
+    -o uid=$CLD_UID,gid=$CLD_GID,dir_mode=$CLD_DIRMODE,file_mode=$CLD_FILEMODE
 
-if [ $? -eq 0 ] && [ -n "$(ls -1A $MOUNT)" ]; then
-    echo "Mounted $URL onto $MOUNT"
+if [ $? -eq 0 ] && [ -n "$(ls -1A $CLD_MOUNT)" ]; then
+    echo "Mounted $CLD_URL onto $CLD_MOUNT"
     exec "$@"
 else
-    echo "Nothing found in $MOUNT, giving up!"
+    echo "Nothing found in $CLD_MOUNT, giving up!"
     exit 2
 fi
