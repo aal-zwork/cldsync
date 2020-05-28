@@ -14,7 +14,7 @@ ENV CLD_LOOP_PERIOD=10
 
 ENV CLD_SRC=/mnt/src
 ENV CLD_SUBPATH=/
-ENV CLD_INOTIFY_EXCLUDE
+ENV CLD_INOTIFY_EXCLUDE=
 ENV CLD_FORCE_TIMESYNC=300
 
 RUN apk --no-cache add ca-certificates davfs2 tini rsync inotify-tools tzdata
