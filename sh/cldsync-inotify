@@ -1,6 +1,6 @@
 #! /usr/bin/env sh
 
-CLD_DST=$CLD_MOUNT$CLD_SUBPATH
+CLD_DST=$CLD_MOUNT$CLD_SUBPATH/
 
 . cldsync-trap
 
